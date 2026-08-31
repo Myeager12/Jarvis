@@ -1,14 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Siyah zemin üzerine gri "J" harfi SVG simgesi
-j_icon_svg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232b2b2b"/><text x="50%" y="72%" font-family="sans-serif" font-weight="bold" font-size="70" fill="%23d0d0d0" text-anchor="middle">J</text></svg>'
-
-st.set_page_config(
-    page_title="Jarvis",
-    page_icon=j_icon_svg,
-    layout="centered"
-)
+st.set_page_config(page_title="Jarvis", layout="centered")
 
 st.title("Jarvis")
 
@@ -40,17 +33,18 @@ st.markdown("""
 api_key = st.secrets.get("GEMINI_API_KEY", "")
 genai.configure(api_key=api_key)
 
-model = genai.GenerativeModel("gemini-3.6-flash")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Mesajları ekrana yaz
+# Mesajları simgesiz baloncuklar halinde ekrana yaz
 for message in st.session_state.messages:
     role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
     st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
 if prompt := st.chat_input("Mesajınızı yazın..."):
+    # Kullanıcı mesajını kaydet ve göster
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.markdown(f'<div class="chat-bubble user-bubble">{prompt}</div>', unsafe_allow_html=True)
 
@@ -58,6 +52,7 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         response = model.generate_content(prompt)
         bot_response = response.text
         
+        # Asistan yanıtını kaydet ve göster
         st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     except Exception as e:
