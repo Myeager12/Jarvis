@@ -1,7 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
 
-st.set_page_config(page_title="Jarvis", layout="centered")
+# Siyah arka planlı J harfi simgesi (Favicon) ve başlık ayarı
+st.set_page_config(
+    page_title="Jarvis",
+    page_icon="https://img.icons8.com/ios-filled/100/333333/j.png",
+    layout="centered"
+)
 
 st.title("Jarvis")
 
@@ -38,13 +43,12 @@ model = genai.GenerativeModel("gemini-3.6-flash")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Mesajları simgesiz baloncuklar halinde ekrana yaz
+# Mesajları ekrana yaz
 for message in st.session_state.messages:
     role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
     st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
 if prompt := st.chat_input("Mesajınızı yazın..."):
-    # Kullanıcı mesajını kaydet ve göster
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.markdown(f'<div class="chat-bubble user-bubble">{prompt}</div>', unsafe_allow_html=True)
 
@@ -52,7 +56,6 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         response = model.generate_content(prompt)
         bot_response = response.text
         
-        # Asistan yanıtını kaydet ve göster
         st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     except Exception as e:
