@@ -1,11 +1,18 @@
 import streamlit as st
-import google.generativeai as genai
+from groq import Groq
 
-st.set_page_config(page_title="Jarvis", layout="centered")
+# Sayfa Yapılandırması ve Favicon (Siyah J SVG)
+j_icon_svg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232b2b2b"/><text x="50%" y="72%" font-family="sans-serif" font-weight="bold" font-size="70" fill="%23d0d0d0" text-anchor="middle">J</text></svg>'
+
+st.set_page_config(
+    page_title="Jarvis",
+    page_icon=j_icon_svg,
+    layout="centered"
+)
 
 st.title("Jarvis")
 
-# Simgeleri tamamen kaldıran ve sade baloncuklar oluşturan CSS
+# Baloncuk stilleri
 st.markdown("""
     <style>
     .chat-bubble {
@@ -30,29 +37,32 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Groq İstemcisi
 api_key = st.secrets.get("GROQ_API_KEY", "")
-genai.configure(api_key=api_key)
-
-model = genai.GenerativeModel("gemini-3.6-flash")
+client = Groq(api_key=api_key)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Mesajları simgesiz baloncuklar halinde ekrana yaz
+# Eski mesajları ekrana yaz
 for message in st.session_state.messages:
     role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
     st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
 if prompt := st.chat_input("Mesajınızı yazın..."):
-    # Kullanıcı mesajını kaydet ve göster
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.markdown(f'<div class="chat-bubble user-bubble">{prompt}</div>', unsafe_allow_html=True)
 
     try:
-        response = model.generate_content(prompt)
-        bot_response = response.text
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ],
+        )
+        bot_response = completion.choices[0].message.content
         
-        # Asistan yanıtını kaydet ve göster
         st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     except Exception as e:
