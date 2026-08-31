@@ -54,8 +54,9 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
     st.markdown(f'<div class="chat-bubble user-bubble">{prompt}</div>', unsafe_allow_html=True)
 
     try:
+        # En kararlı Groq modeli
         completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama3-8b-8192",
             messages=[
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state.messages
