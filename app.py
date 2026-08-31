@@ -1,10 +1,12 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 
 st.title("Jarvis")
 
 api_key = st.secrets.get("AQ.Ab8RN6L1utii7YDs6WlNodj_1BMnkENdtM9xyCrMXwPYeqP1pA", "")
-client = genai.Client(api_key=api_key)
+genai.configure(api_key=api_key)
+
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -19,12 +21,10 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         st.markdown(prompt)
 
     try:
-        response = client.models.generate_content(
-            model='gemini-3.6-flash',
-            contents=prompt
-        )
+        response = model.generate_content(prompt)
         with st.chat_message("assistant"):
             st.markdown(response.text)
         st.session_state.messages.append({"role": "assistant", "content": response.text})
     except Exception as e:
         st.error(f"Hata: {e}")
+        
