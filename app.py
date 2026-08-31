@@ -56,7 +56,7 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
     try:
         # En kararlı Groq modeli
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="mixtral-8x7b-32768",
             messages=[
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state.messages
