@@ -1,10 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Siyah arka planlı J harfi simgesi (Favicon) ve başlık ayarı
+# Siyah zemin üzerine gri "J" harfi SVG simgesi
+j_icon_svg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232b2b2b"/><text x="50%" y="72%" font-family="sans-serif" font-weight="bold" font-size="70" fill="%23d0d0d0" text-anchor="middle">J</text></svg>'
+
 st.set_page_config(
     page_title="Jarvis",
-    page_icon="https://img.icons8.com/ios-filled/100/333333/j.png",
+    page_icon=j_icon_svg,
     layout="centered"
 )
 
