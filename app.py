@@ -30,7 +30,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-api_key = st.secrets.get("GEMINI_API_KEY", "")
+api_key = st.secrets.get("GROQ_API_KEY", "")
 genai.configure(api_key=api_key)
 
 model = genai.GenerativeModel("gemini-3.6-flash")
