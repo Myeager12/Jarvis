@@ -1,13 +1,31 @@
 import streamlit as st
 import google.generativeai as genai
 
+st.set_page_config(page_title="Jarvis", layout="centered")
+
 st.title("Jarvis")
 
-# Avatar simgelerini tamamen gizleyen CSS
+# Simgeleri tamamen kaldıran ve sade baloncuklar oluşturan CSS
 st.markdown("""
     <style>
-    [data-testid="stChatMessageAvatarContainer"] {
-        display: none !important;
+    .chat-bubble {
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        max-width: 85%;
+        word-wrap: break-word;
+        font-family: sans-serif;
+        line-height: 1.5;
+    }
+    .user-bubble {
+        background-color: #f0f2f6;
+        color: #111;
+        margin-left: auto;
+    }
+    .assistant-bubble {
+        background-color: #e8f0fe;
+        color: #111;
+        margin-right: auto;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -20,22 +38,22 @@ model = genai.GenerativeModel("gemini-3.6-flash")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Mesajları simgesiz baloncuklar halinde ekrana yaz
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
+    st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
 if prompt := st.chat_input("Mesajınızı yazın..."):
+    # Kullanıcı mesajını kaydet ve göster
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    st.markdown(f'<div class="chat-bubble user-bubble">{prompt}</div>', unsafe_allow_html=True)
 
     try:
         response = model.generate_content(prompt)
         bot_response = response.text
         
-        with st.chat_message("assistant"):
-            st.markdown(bot_response)
-            
+        # Asistan yanıtını kaydet ve göster
+        st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     except Exception as e:
         st.error(f"Hata oluştu: {e}")
