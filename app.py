@@ -1,10 +1,21 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 
 st.title("Jarvis")
 
+# Avatar simgelerini tamamen gizleyen CSS
+st.markdown("""
+    <style>
+    [data-testid="stChatMessageAvatarContainer"] {
+        display: none !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 api_key = st.secrets.get("GEMINI_API_KEY", "")
-client = genai.Client(api_key=api_key)
+genai.configure(api_key=api_key)
+
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -19,13 +30,13 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         st.markdown(prompt)
 
     try:
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt,
-        )
+        response = model.generate_content(prompt)
+        bot_response = response.text
+        
         with st.chat_message("assistant"):
-            st.markdown(response.text)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.markdown(bot_response)
+            
+        st.session_state.messages.append({"role": "assistant", "content": bot_response})
     except Exception as e:
-        st.error(f"Hata: {e}")
+        st.error(f"Hata oluştu: {e}")
         
