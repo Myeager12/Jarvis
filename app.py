@@ -3,10 +3,11 @@ import google.generativeai as genai
 
 st.title("Jarvis")
 
-api_key = st.secrets.get("AQ.Ab8RN6L1utii7YDs6WlNodj_1BMnkENdtM9xyCrMXwPYeqP1pA", "")
+api_key = st.secrets.get("AQ.Ab8RN6LxDOwL5da-seZJ4SdFK3xC_Ykh4EMNAj6jDEN9i712ZQ", "")
 genai.configure(api_key=api_key)
 
-model = genai.GenerativeModel("gemini-1.5-flash")
+# Model ismi güncellendi
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
