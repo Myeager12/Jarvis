@@ -10,8 +10,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("Jarvis")
-
+# Özel Stil Tanımlamaları
 st.markdown("""
     <style>
     .chat-bubble {
@@ -39,27 +38,50 @@ st.markdown("""
 api_key = st.secrets.get("GROQ_API_KEY", "")
 client = Groq(api_key=api_key)
 
+# Sol Menü (Sidebar / 3 Çizgi)
+with st.sidebar:
+    st.title("⚙️ Jarvis Ayarları")
+    
+    # Model seçimi menüsü
+    selected_model = st.selectbox(
+        "Öncelikli Model Seçin:",
+        ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+        index=0
+    )
+    
+    st.divider()
+    
+    # Sohbeti temizleme butonu
+    if st.button("🗑️ Sohbeti Temizle", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# 1. Önceki Mesajları Göster
 for message in st.session_state.messages:
     role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
     st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
+# 2. Yeni Mesaj Alanı
 if prompt := st.chat_input("Mesajınızı yazın..."):
+    # Kullanıcı mesajını ekle
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.markdown(f'<div class="chat-bubble user-bubble">{prompt}</div>', unsafe_allow_html=True)
 
-    # Denediğimiz güncel modeller listesi
+    # Yedek model listesi (İlk sıraya sidebardaki seçimi koyuyoruz)
     candidate_models = [
-        "llama-3.1-8b-instant",
+        selected_model,
         "llama-3.3-70b-versatile",
-        "openai/gpt-oss-20b"
+        "llama-3.1-8b-instant"
     ]
+    # Tekrarlayan modelleri listeden temizle
+    candidate_models = list(dict.fromkeys(candidate_models))
     
     bot_response = None
     last_error = None
 
+    # Groq API Çağrısı
     for model_name in candidate_models:
         try:
             completion = client.chat.completions.create(
@@ -75,10 +97,9 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
             last_error = e
 
     if bot_response:
-        st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
-    
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     else:
         st.error(f"Hata oluştu: {last_error}")
-        import streamlit as st
-from groq import Groq
+
+    # Sayfayı yenileyip tüm mesajların düzenli basılmasını sağla
+    st.rerun()
