@@ -117,13 +117,8 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
 
     messages.append({"role": "user", "content": prompt})
 
-    # Güncel ve Aktif Groq Modelleri
-    candidate_models = [
-        "llama-3.3-70b-versatile",
-        "llama3-8b-8192",
-        "llama3-70b-8192",
-        "mixtral-8x7b-32768"
-    ]
+    # Doğrudan aktifleştirilen model
+    selected_model = "llama-3.3-70b-versatile"
     
     system_prompt = {
         "role": "system",
@@ -139,16 +134,14 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
     last_error = None
 
     with st.spinner("Jarvis düşünüyor..."):
-        for model_name in candidate_models:
-            try:
-                completion = client.chat.completions.create(
-                    model=model_name,
-                    messages=api_payload,
-                )
-                bot_response = completion.choices[0].message.content
-                break
-            except Exception as e:
-                last_error = e
+        try:
+            completion = client.chat.completions.create(
+                model=selected_model,
+                messages=api_payload,
+            )
+            bot_response = completion.choices[0].message.content
+        except Exception as e:
+            last_error = e
 
     if bot_response:
         messages.append({"role": "assistant", "content": bot_response})
@@ -156,4 +149,5 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         st.rerun()
     else:
         st.error(f"Hata oluştu: {last_error}")
+        
         
