@@ -17,7 +17,6 @@ st.set_page_config(
 DB_FILE = "chats.json"
 
 def load_chats():
-    """Disk üzerindeki JSON dosyasından sohbetleri yükler."""
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -27,20 +26,16 @@ def load_chats():
     return {}
 
 def save_chats(chats):
-    """Sohbetleri diske JSON olarak kaydeder."""
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(chats, f, ensure_ascii=False, indent=2)
 
-# Uygulama başladığında verileri diskten çek
 if "chats" not in st.session_state:
     st.session_state.chats = load_chats()
 
 if "current_chat_id" not in st.session_state or st.session_state.current_chat_id not in st.session_state.chats:
     if st.session_state.chats:
-        # Daha önce kaydedilmiş sohbet varsa son sohbeti seç
         st.session_state.current_chat_id = list(st.session_state.chats.keys())[-1]
     else:
-        # Yoksa yeni bir sohbet oluştur
         new_id = str(uuid.uuid4())
         st.session_state.chats[new_id] = {"title": "Yeni Sohbet", "messages": []}
         st.session_state.current_chat_id = new_id
@@ -112,31 +107,29 @@ st.markdown("""
 api_key = st.secrets.get("GROQ_API_KEY", "")
 client = Groq(api_key=api_key)
 
-# Önceki tüm mesajları ekrana bas
 for message in messages:
     role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
     st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
 if prompt := st.chat_input("Mesajınızı yazın..."):
-    # İlk mesajda sohbet başlığını ayarla
     if len(messages) == 0:
         current_chat["title"] = prompt[:20] + ("..." if len(prompt) > 20 else "")
 
     messages.append({"role": "user", "content": prompt})
 
-    # Groq resmi Llama modelleri
+    # Güncel ve Aktif Groq Modelleri
     candidate_models = [
         "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant"
+        "llama3-8b-8192",
+        "llama3-70b-8192",
+        "mixtral-8x7b-32768"
     ]
     
-    # Jarvis kişiliğini tanımlayan sistem mesajı
     system_prompt = {
         "role": "system",
         "content": "Your name is Jarvis. You are an AI assistant named Jarvis. NEVER claim to be ChatGPT or OpenAI. Always remember conversation details provided by the user in this chat session."
     }
 
-    # Bütün mesaj geçmişini ve sistem talimatını tek paket yapıyoruz
     api_payload = [system_prompt] + [
         {"role": m["role"], "content": m["content"]} 
         for m in messages
@@ -159,7 +152,6 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
 
     if bot_response:
         messages.append({"role": "assistant", "content": bot_response})
-        # Yeni mesaj eklendikten sonra diske kaydet
         save_chats(st.session_state.chats)
         st.rerun()
     else:
