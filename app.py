@@ -85,8 +85,6 @@ from groq import Groq
 import streamlit as st
 from groq import Groq
 
-st.set_page_config(page_title="Jarvis AI", layout="wide")
-
 # Groq istemcisini başlat (st.secrets["GROQ_API_KEY"] kullanılır)
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
@@ -112,9 +110,6 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# --- ANA SOHBET ARAYÜZÜ ---
-st.title("Jarvis AI")
-
 # Sohbet geçmişini başlat
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -123,13 +118,6 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
-# Kullanıcı mesaj girişi
-if prompt := st.chat_input("Mesajınızı yazın..."):
-    # Kullanıcı mesajını ekle ve göster
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
 
     # Groq API yanıtını al
     with st.chat_message("assistant"):
