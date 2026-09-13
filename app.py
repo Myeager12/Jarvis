@@ -153,4 +153,4 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         save_chats(st.session_state.chats)
     else:
         st.error(f"Hata oluştu: {last_error}")
-    
+        
