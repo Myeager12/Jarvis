@@ -10,7 +10,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Özel Stil Tanımlamaları
+# Özel CSS Stilleri
 st.markdown("""
     <style>
     .chat-bubble {
@@ -35,71 +35,72 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# API İstemcisi
 api_key = st.secrets.get("GROQ_API_KEY", "")
 client = Groq(api_key=api_key)
 
-# Sol Menü (Sidebar / 3 Çizgi)
+# Sol Menü (Sidebar)
 with st.sidebar:
     st.title("⚙️ Jarvis Ayarları")
-    
-    # Model seçimi menüsü
     selected_model = st.selectbox(
         "Öncelikli Model Seçin:",
         ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
         index=0
     )
-    
     st.divider()
-    
-    # Sohbeti temizleme butonu
     if st.button("🗑️ Sohbeti Temizle", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
+# Oturum Geçmişi Başlatma
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 1. Önceki Mesajları Göster
+# 1. Mevcut Tüm Mesajları Ekrana Yazdır
 for message in st.session_state.messages:
     role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
     st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
-# 2. Yeni Mesaj Alanı
+# 2. Kullanıcı Girdisi ve Yanıt Üretimi
 if prompt := st.chat_input("Mesajınızı yazın..."):
-    # Kullanıcı mesajını ekle
+    # Kullanıcı mesajını kaydet ve ekrana bas
     st.session_state.messages.append({"role": "user", "content": prompt})
+    st.markdown(f'<div class="chat-bubble user-bubble">{prompt}</div>', unsafe_allow_html=True)
 
-    # Yedek model listesi (İlk sıraya sidebardaki seçimi koyuyoruz)
+    # Geçerli Groq Modelleri
     candidate_models = [
         selected_model,
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant"
     ]
-    # Tekrarlayan modelleri listeden temizle
+    # Tekrarlayan modelleri listeden kaldır
     candidate_models = list(dict.fromkeys(candidate_models))
     
     bot_response = None
     last_error = None
 
-    # Groq API Çağrısı
-    for model_name in candidate_models:
-        try:
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.messages
-                ],
-            )
-            bot_response = completion.choices[0].message.content
-            break  # Başarılı olursa döngüden çık
-        except Exception as e:
-            last_error = e
+    # Yükleniyor Göstergesi
+    with st.spinner("Jarvis düşünüyor..."):
+        for model_name in candidate_models:
+            try:
+                completion = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": m["role"], "content": m["content"]}
+                        for m in st.session_state.messages
+                    ],
+                )
+                bot_response = completion.choices[0].message.content
+                if bot_response:
+                    break
+            except Exception as e:
+                last_error = e
 
+    # Yanıt Geldiyse Göster ve Kaydet
     if bot_response:
+        st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
+        st.rerun()
     else:
-        st.error(f"Hata oluştu: {last_error}")
-
-    # Sayfayı yenileyip tüm mesajların düzenli basılmasını sağla
-    st.rerun()
+        st.error(f"API Yanıt Veremedi. Detay: {last_error}")
+        
