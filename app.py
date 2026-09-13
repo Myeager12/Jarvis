@@ -84,3 +84,61 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
 from groq import Groq
 import streamlit as st
 from groq import Groq
+import streamlit as st
+from groq import Groq
+
+st.set_page_config(page_title="Jarvis AI", page_icon="🤖", layout="wide")
+
+# Groq İstemcisini Başlat
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+
+# Sol Menü (Sidebar / 3 Çizgi Menüsü)
+with st.sidebar:
+    st.title("⚙️ Jarvis Ayarları")
+    selected_model = st.selectbox(
+        "Model Seçin:",
+        ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+        index=0
+    )
+    
+    st.divider()
+    if st.button("🗑️ Sohbeti Temizle", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
+# Oturum Geçmişi Başlatma (Session State)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Geçmiş Mesajları Ekrana Yazdırma
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Kullanıcı Girişi
+if prompt := st.chat_input("Jarvis'e bir şeyler yazın..."):
+    # 1. Kullanıcı mesajını geçmişe ekle ve göster
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # 2. Modelden yanıt al
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        
+        # API çağrısına tüm mesaj geçmişini gönderiyoruz
+        response = client.chat.completions.create(
+            model=selected_model,
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ],
+            stream=False
+        )
+        
+        full_response = response.choices[0].message.content
+        message_placeholder.markdown(full_response)
+    
+    # 3. Asistan yanıtını geçmişe ekle
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    
