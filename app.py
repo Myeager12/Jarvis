@@ -17,7 +17,6 @@ st.set_page_config(
 DB_FILE = "chats.json"
 
 def load_chats():
-    """Disk üzerindeki JSON dosyasından sohbetleri yükler."""
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -27,20 +26,16 @@ def load_chats():
     return {}
 
 def save_chats(chats):
-    """Sohbetleri diske JSON olarak kaydeder."""
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(chats, f, ensure_ascii=False, indent=2)
 
-# Uygulama başladığında verileri diskten çek
 if "chats" not in st.session_state:
     st.session_state.chats = load_chats()
 
 if "current_chat_id" not in st.session_state or st.session_state.current_chat_id not in st.session_state.chats:
     if st.session_state.chats:
-        # Daha önce kaydedilmiş sohbet varsa son sohbeti seç
         st.session_state.current_chat_id = list(st.session_state.chats.keys())[-1]
     else:
-        # Yoksa yeni bir sohbet oluştur
         new_id = str(uuid.uuid4())
         st.session_state.chats[new_id] = {"title": "Yeni Sohbet", "messages": []}
         st.session_state.current_chat_id = new_id
@@ -123,12 +118,20 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
     messages.append({"role": "user", "content": prompt})
     st.markdown(f'<div class="chat-bubble user-bubble">{prompt}</div>', unsafe_allow_html=True)
 
+    # Sadece çalışan resmi Groq modelleri
     candidate_models = [
-        "llama-3.1-8b-instant",
         "llama-3.3-70b-versatile",
-        "openai/gpt-oss-20b"
+        "llama-3.1-8b-instant"
     ]
     
+    # Bounded Sistem Kimliği
+    system_prompt = {
+        "role": "system", 
+        "content": "Your name is Jarvis. You are an AI assistant built named Jarvis. NEVER claim to be ChatGPT, OpenAI, or any other assistant. If asked who or what you are, always reply that you are Jarvis."
+    }
+
+    api_payload = [system_prompt] + [{"role": m["role"], "content": m["content"]} for m in messages]
+
     bot_response = None
     last_error = None
 
@@ -136,10 +139,7 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         try:
             completion = client.chat.completions.create(
                 model=model_name,
-                messages=[
-                    {"role": m["role"], "content": m["content"]}
-                    for m in messages
-                ],
+                messages=api_payload,
             )
             bot_response = completion.choices[0].message.content
             break
@@ -149,7 +149,6 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
     if bot_response:
         st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
         messages.append({"role": "assistant", "content": bot_response})
-        # Yeni mesaj eklendikten sonra diske kaydet
         save_chats(st.session_state.chats)
     else:
         st.error(f"Hata oluştu: {last_error}")
