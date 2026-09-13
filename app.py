@@ -79,3 +79,41 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     else:
         st.error(f"Hata oluştu: {last_error}")
+        import streamlit as st
+from groq import Groq
+
+st.title("Jarvis AI")
+
+# Groq istemcisini başlat
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+
+# Oturum geçmişi yoksa başlat
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Geçmiş mesajları ekranda listele
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Kullanıcıdan yeni mesaj al
+if prompt := st.chat_input("Jarvis'e bir şey yazın..."):
+    # Kullanıcı mesajını ekrana ve geçmişe ekle
+    st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # Modelden yanıt al (Tüm geçmişi modele göndererek bağlamı koru)
+    with st.chat_message("assistant"):
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ]
+        )
+        reply = response.choices[0].message.content
+        st.markdown(reply)
+    
+    # Modelin yanıtını geçmişe kaydet
+    st.session_state.messages.append({"role": "assistant", "content": reply})
+    
