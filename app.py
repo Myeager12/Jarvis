@@ -76,8 +76,73 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
 
     if bot_response:
         st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
+    
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     else:
         st.error(f"Hata oluştu: {last_error}")
         import streamlit as st
 from groq import Groq
+# conversation.py
+import openai
+from typing import List, Dict
+
+class Conversation:
+    def __init__(self, model="gpt-4o-mini", system_prompt="You are a helpful assistant."):
+        self.model = model
+        self.messages: List[Dict[str, str]] = []
+        # System prompt is always first
+        self.messages.append({"role": "system", "content": system_prompt})
+
+    def add_user(self, text: str):
+        self.messages.append({"role": "user", "content": text})
+
+    def add_assistant(self, text: str):
+        self.messages.append({"role": "assistant", "content": text})
+
+    def last_response(self):
+        # Returns the assistant's last reply
+        for msg in reversed(self.messages):
+            if msg["role"] == "assistant":
+                return msg["content"]
+        return None
+
+    def to_file(self, path: str):
+        with open(path, "w", encoding="utf-8") as f:
+            for m in self.messages:
+                f.write(f"{m['role']}: {m['content']}\n\n")
+
+    def from_file(self, path: str):
+        self.messages = []
+        with open(path, "r", encoding="utf-8") as f:
+            role = None
+            content = ""
+            for line in f:
+                line = line.rstrip()
+                if not line:
+                    continue
+                if line.endswith(":"):
+                    if role and content:
+                        self.messages.append({"role": role, "content": content.strip()})
+                    role = line[:-1].lower()
+                    content = ""
+                else:
+                    content += line + " "
+            if role and content:
+                self.messages.append({"role": role, "content": content.strip()})
+
+    def ask(self, text: str):
+        self.add_user(text)
+        response = openai.chat.completions.create(
+            model=self.model,
+            messages=self.messages,
+        )
+        answer = response.choices[0].message.content
+        self.add_assistant(answer)
+        return answer
+
+# Usage
+if __name__ == "__main__":
+    conv = Conversation()
+    print(conv.ask("Hi! How can I help you today?"))
+    print(conv.ask("I had a conversation earlier about saving history."))
+    conv.to_file("chat_history.txt")
