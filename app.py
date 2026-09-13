@@ -1,6 +1,8 @@
 import streamlit as st
 from groq import Groq
 import uuid
+import json
+import os
 
 # Sayfa Yapılandırması
 j_icon_svg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232b2b2b"/><text x="50%" y="72%" font-family="sans-serif" font-weight="bold" font-size="70" fill="%23d0d0d0" text-anchor="middle">J</text></svg>'
@@ -11,37 +13,56 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- SOHBET GEÇMİŞİ VERİ YAPISI ---
+# --- KALICI VERİ SAKLAMA (JSON) ---
+DB_FILE = "chats.json"
+
+def load_chats():
+    """Disk üzerindeki JSON dosyasından sohbetleri yükler."""
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_chats(chats):
+    """Sohbetleri diske JSON olarak kaydeder."""
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(chats, f, ensure_ascii=False, indent=2)
+
+# Uygulama başladığında verileri diskten çek
 if "chats" not in st.session_state:
-    st.session_state.chats = {}  # Tüm sohbetler: {chat_id: {"title": str, "messages": list}}
+    st.session_state.chats = load_chats()
 
 if "current_chat_id" not in st.session_state or st.session_state.current_chat_id not in st.session_state.chats:
-    # İlk sohbeti oluştur
-    new_id = str(uuid.uuid4())
-    st.session_state.chats[new_id] = {"title": "Yeni Sohbet", "messages": []}
-    st.session_state.current_chat_id = new_id
+    if st.session_state.chats:
+        # Daha önce kaydedilmiş sohbet varsa son sohbeti seç
+        st.session_state.current_chat_id = list(st.session_state.chats.keys())[-1]
+    else:
+        # Yoksa yeni bir sohbet oluştur
+        new_id = str(uuid.uuid4())
+        st.session_state.chats[new_id] = {"title": "Yeni Sohbet", "messages": []}
+        st.session_state.current_chat_id = new_id
+        save_chats(st.session_state.chats)
 
-# Aktif sohbetin mesajları
 current_chat = st.session_state.chats[st.session_state.current_chat_id]
 messages = current_chat["messages"]
-
 
 # --- SOL MENÜ (SIDEBAR) ---
 with st.sidebar:
     st.title("⚙️ Jarvis Ayarları")
     
-    # Yeni Sohbet Başlat Butonu
     if st.button("➕ Yeni Sohbet", use_container_width=True):
         new_id = str(uuid.uuid4())
         st.session_state.chats[new_id] = {"title": "Yeni Sohbet", "messages": []}
         st.session_state.current_chat_id = new_id
+        save_chats(st.session_state.chats)
         st.rerun()
 
     st.subheader("💬 Geçmiş Sohbetler")
     
-    # Geçmiş sohbetleri listele
     for chat_id, chat_data in list(st.session_state.chats.items()):
-        # Aktif sohbeti vurgulamak için stil
         button_label = f"💬 {chat_data['title']}"
         if chat_id == st.session_state.current_chat_id:
             button_label = f"▶️ {chat_data['title']}"
@@ -53,11 +74,13 @@ with st.sidebar:
     st.divider()
     if st.button("🗑️ Tüm Sohbetleri Temizle", use_container_width=True):
         st.session_state.chats = {}
+        if os.path.exists(DB_FILE):
+            os.remove(DB_FILE)
         new_id = str(uuid.uuid4())
         st.session_state.chats[new_id] = {"title": "Yeni Sohbet", "messages": []}
         st.session_state.current_chat_id = new_id
+        save_chats(st.session_state.chats)
         st.rerun()
-
 
 # --- ANA EKRAN ---
 st.title("Jarvis")
@@ -89,14 +112,11 @@ st.markdown("""
 api_key = st.secrets.get("GROQ_API_KEY", "")
 client = Groq(api_key=api_key)
 
-# Aktif sohbetin mesajlarını ekrana yazdır
 for message in messages:
     role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
     st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
-# Kullanıcı Girişi
 if prompt := st.chat_input("Mesajınızı yazın..."):
-    # Eğer sohbet henüz isimlendirilmediyse (ilk mesajsa) başlığı güncelle
     if len(messages) == 0:
         current_chat["title"] = prompt[:20] + ("..." if len(prompt) > 20 else "")
 
@@ -129,6 +149,8 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
     if bot_response:
         st.markdown(f'<div class="chat-bubble assistant-bubble">{bot_response}</div>', unsafe_allow_html=True)
         messages.append({"role": "assistant", "content": bot_response})
+        # Yeni mesaj eklendikten sonra diske kaydet
+        save_chats(st.session_state.chats)
     else:
         st.error(f"Hata oluştu: {last_error}")
-        
+    
