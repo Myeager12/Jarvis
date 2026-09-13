@@ -17,6 +17,7 @@ st.set_page_config(
 DB_FILE = "chats.json"
 
 def load_chats():
+    """Disk üzerindeki JSON dosyasından sohbetleri yükler."""
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -26,9 +27,11 @@ def load_chats():
     return {}
 
 def save_chats(chats):
+    """Sohbetleri diske JSON olarak kaydeder."""
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(chats, f, ensure_ascii=False, indent=2)
 
+# Uygulama başladığında verileri diskten çek
 if "chats" not in st.session_state:
     st.session_state.chats = load_chats()
 
@@ -107,24 +110,32 @@ st.markdown("""
 api_key = st.secrets.get("GROQ_API_KEY", "")
 client = Groq(api_key=api_key)
 
+# Önceki tüm mesajları ekrana bas
 for message in messages:
     role_class = "user-bubble" if message["role"] == "user" else "assistant-bubble"
     st.markdown(f'<div class="chat-bubble {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 
 if prompt := st.chat_input("Mesajınızı yazın..."):
+    # İlk mesajda sohbet başlığını ayarla
     if len(messages) == 0:
         current_chat["title"] = prompt[:20] + ("..." if len(prompt) > 20 else "")
 
     messages.append({"role": "user", "content": prompt})
 
-    # Doğrudan aktifleştirilen model
-    selected_model = "llama-3.3-70b-versatile"
+    # Groq Güncel Desteklenen Modeller
+    candidate_models = [
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.6-27b"
+    ]
     
+    # Jarvis kişiliğini ve sohbet geçmişi hafızasını tanımlayan sistem mesajı
     system_prompt = {
         "role": "system",
         "content": "Your name is Jarvis. You are an AI assistant named Jarvis. NEVER claim to be ChatGPT or OpenAI. Always remember conversation details provided by the user in this chat session."
     }
 
+    # Bütün mesaj geçmişini ve sistem talimatını tek paket yapıyoruz
     api_payload = [system_prompt] + [
         {"role": m["role"], "content": m["content"]} 
         for m in messages
@@ -134,14 +145,16 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
     last_error = None
 
     with st.spinner("Jarvis düşünüyor..."):
-        try:
-            completion = client.chat.completions.create(
-                model=selected_model,
-                messages=api_payload,
-            )
-            bot_response = completion.choices[0].message.content
-        except Exception as e:
-            last_error = e
+        for model_name in candidate_models:
+            try:
+                completion = client.chat.completions.create(
+                    model=model_name,
+                    messages=api_payload,
+                )
+                bot_response = completion.choices[0].message.content
+                break
+            except Exception as e:
+                last_error = e
 
     if bot_response:
         messages.append({"role": "assistant", "content": bot_response})
@@ -149,5 +162,4 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         st.rerun()
     else:
         st.error(f"Hata oluştu: {last_error}")
-        
         
