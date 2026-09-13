@@ -82,3 +82,70 @@ if prompt := st.chat_input("Mesajınızı yazın..."):
         st.error(f"Hata oluştu: {last_error}")
         import streamlit as st
 from groq import Groq
+import streamlit as st
+from groq import Groq
+
+st.set_page_config(page_title="Jarvis AI", layout="wide")
+
+# Groq istemcisini başlat (st.secrets["GROQ_API_KEY"] kullanılır)
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+
+# --- SOL KENAR ÇUBUĞU (SIDEBAR - 3 ÇİZGİ) ---
+with st.sidebar:
+    st.title("⚙️ Jarvis Ayarları")
+    
+    # Model seçimi
+    selected_model = st.selectbox(
+        "Model Seçin:",
+        [
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-versatile",
+            "mixtral-8x7b-32768"
+        ],
+        index=0
+    )
+    
+    st.divider()
+    
+    # Sohbet Temizleme Butonu
+    if st.button("🗑️ Sohbeti Temizle", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
+# --- ANA SOHBET ARAYÜZÜ ---
+st.title("Jarvis AI")
+
+# Sohbet geçmişini başlat
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Geçmiş mesajları ekrana yazdır
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Kullanıcı mesaj girişi
+if prompt := st.chat_input("Mesajınızı yazın..."):
+    # Kullanıcı mesajını ekle ve göster
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Groq API yanıtını al
+    with st.chat_message("assistant"):
+        try:
+            response = client.chat.completions.create(
+                model=selected_model,
+                messages=[
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.messages
+                ]
+            )
+            bot_reply = response.choices[0].message.content
+            st.markdown(bot_reply)
+            
+            # Asistan yanıtını geçmişe kaydet
+            st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+        except Exception as e:
+            st.error(f"Hata oluştu: {e}")
+            
