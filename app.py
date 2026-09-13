@@ -116,7 +116,6 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Kullanıcı Girişi
-if prompt := st.chat_input("Jarvis'e bir şeyler yazın..."):
     # 1. Kullanıcı mesajını geçmişe ekle ve göster
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
