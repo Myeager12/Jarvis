@@ -99,7 +99,7 @@ for message in st.session_state.messages:
     # Modelden yanıt al (Tüm geçmişi modele göndererek bağlamı koru)
     with st.chat_message("assistant"):
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-instant",
             messages=[
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state.messages
