@@ -106,19 +106,10 @@ with st.sidebar:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-st.title("Jarvis")
-
 # 1. Önceki tüm mesajları ekrana bas
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
-# 2. Yeni Kullanıcı Girişi
-if prompt := st.chat_input("Mesajınızı yazın..."):
-    # Kullanıcı mesajını geçmişe ekle ve hemen göster
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
 
     # Model yanıtını al
     with st.chat_message("assistant"):
